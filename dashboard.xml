@@ -1,0 +1,80 @@
+<dashboard version="1.1">
+  <label>SSH Brute Force Monitor</label>
+  <description>Detecting SSH Brute Force attacks from Kali</description>
+
+  <row>
+    <panel>
+      <title>Total Failed SSH Attempts Today</title>
+      <single>
+        <search>
+          <query>index=* host=kali "Failed password" earliest=@d | stats count as TotalFailedAttempts</query>
+          <earliest>@d</earliest>
+          <latest>now</latest>
+        </search>
+      </single>
+    </panel>
+
+    <panel>
+      <title>Brute Force IPs (10+ attempts)</title>
+      <table>
+        <search>
+          <query>index=* host=kali "Failed password" earliest=@d
+| rex field=_raw "from (?&lt;src_ip&gt;\d+\.\d+\.\d+\.\d+)"
+| stats count as FailedAttempts by src_ip
+| where FailedAttempts &gt;= 10
+| sort -FailedAttempts</query>
+          <earliest>@d</earliest>
+          <latest>now</latest>
+        </search>
+      </table>
+    </panel>
+  </row>
+
+  <row>
+    <panel>
+      <title>Attack Timeline (Hourly)</title>
+      <chart>
+        <search>
+          <query>index=* host=kali "Failed password" earliest=@d
+| timechart count as FailedAttempts span=1h</query>
+          <earliest>@d</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="charting.chart">line</option>
+      </chart>
+    </panel>
+  </row>
+
+  <row>
+    <panel>
+      <title>Targeted Usernames</title>
+      <chart>
+        <search>
+          <query>index=* host=kali "Failed password" earliest=@d
+| rex field=_raw "for (?&lt;username&gt;\w+) from"
+| stats count by username
+| sort -count</query>
+          <earliest>@d</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="charting.chart">pie</option>
+      </chart>
+    </panel>
+
+    <panel>
+      <title>Attack Events Raw Log</title>
+      <table>
+        <search>
+          <query>index=* host=kali "Failed password" earliest=@d
+| rex field=_raw "from (?&lt;src_ip&gt;\d+\.\d+\.\d+\.\d+)"
+| rex field=_raw "for (?&lt;username&gt;\w+) from"
+| table _time, src_ip, username
+| sort -_time</query>
+          <earliest>@d</earliest>
+          <latest>now</latest>
+        </search>
+      </table>
+    </panel>
+  </row>
+
+</dashboard>
